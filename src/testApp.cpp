@@ -5,79 +5,49 @@
 #include "testApp.h"
 #include "triangle.h"
 
-const unsigned int testApp::kNumEnemies = 10;
-const unsigned int testApp::kNumGameObjects = 10;
+constexpr unsigned int testApp::kNumGameObjects;
 
 //--------------------------------------------------------------
 void testApp::setup() {
   ofEnableSmoothing();
   reproduce_type = 0;
   for (unsigned int i = 0; i < kNumGameObjects; ++i) {
-    CreateRandomShape(ofVec2f(ofRandomWidth(), ofRandomHeight()), true);
-  }
-  for (unsigned int i = 0; i < kNumEnemies; ++i) {
-    CreateRandomShape(ofVec2f(ofRandomWidth(), ofRandomHeight()), false);
+    CreateShape(ofVec2f(ofRandomWidth(), ofRandomHeight()));
   }
 }
 
 //--------------------------------------------------------------
 void testApp::update() {
-  UpdateGroup(triangles, triangle_key_down);
   UpdateGroup(circles, circle_key_down);
-  UpdateGroup(squares, square_key_down);
-  
-  UpdateGroup(enemy_triangles, false);
-  UpdateGroup(enemy_circles, false);
-  UpdateGroup(enemy_squares, false);
-  
-  CollideGroups(triangles, enemy_circles);
-  CollideGroups(circles, enemy_squares);
-  CollideGroups(squares, enemy_triangles);
-  
-  CollideGroups(enemy_triangles, circles);
-  CollideGroups(enemy_circles, squares);
-  CollideGroups(enemy_squares, triangles);
-  
-  RemoveDeadIndividuals(triangles);
   RemoveDeadIndividuals(circles);
-  RemoveDeadIndividuals(squares);
-  
-  RemoveDeadIndividuals(enemy_triangles);
-  RemoveDeadIndividuals(enemy_circles);
-  RemoveDeadIndividuals(enemy_squares);
 }
 
 void testApp::UpdateGroup(std::list<GameObject *> &group, bool move) {
   if (move) {
     SteerGroup(group, mouse_position);
   }
+  Collide(circles);
   for (auto individual : group) {
     individual->Update(1.0 / ofGetFrameRate());
-    if (individual->player) {
-      individual->MaybeReproduce(triangles, circles, squares, reproduce_type);
-    } else {
-      unsigned int enemy_reproduce_type = 0;
-      const float choice = ofRandomuf();
-      if (choice < 1.0 / 3.0) {
-        enemy_reproduce_type = 1;
-      } else if (choice < 2.0 / 3.0) {
-        enemy_reproduce_type = 2;
-      }
-      individual->MaybeReproduce(enemy_triangles, enemy_circles, enemy_squares, enemy_reproduce_type);
-    }
   }
 }
 
-void testApp::CollideGroups(std::list<GameObject *> &winners, std::list<GameObject *> &losers) {
-  std::for_each(winners.begin(), winners.end(), [losers] (GameObject *const winner) {
-    std::for_each(losers.begin(), losers.end(), [winner] (GameObject *const loser) {
-      const float colliding_distance = winner->size + loser->size;
-      if (winner->position.distanceSquared(loser->position) < colliding_distance * colliding_distance) {
-        winner->size = std::min(winner->size + loser->size, GameObject::kMaxSize);
-        loser->size = 0;
+void testApp::Collide(std::list<GameObject *> &group) {
+  std::list<GameObject *>::iterator i, j;
+  for (i = group.begin(); i != group.end(); ++i) {
+    j = i;
+    GameObject *individual0 = *i;
+    for (std::advance(j, 1); j != group.end(); ++j) {
+      GameObject *individual1 = *j;
+      const ofVec2f r = individual1->position - individual0->position;
+      const float actual_distance = r.length();
+      const float colliding_distance = individual0->size + individual1->size;
+      if (actual_distance < colliding_distance) {
+        individual0->force -= 10.0 * r.normalized() * pow(colliding_distance - actual_distance, 1);
+        individual1->force += 10.0 * r.normalized() * pow(colliding_distance - actual_distance, 1);
       }
-    });
-  });
+    }
+  }
 }
 
 void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
@@ -94,13 +64,7 @@ void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
 //--------------------------------------------------------------
 void testApp::draw() {
   ofBackground(0.0, 0.0, 0.0);
-  DrawGroup(enemy_triangles);
-  DrawGroup(enemy_circles);
-  DrawGroup(enemy_squares);
-  
-  DrawGroup(triangles);
   DrawGroup(circles);
-  DrawGroup(squares);
 }
 
 void testApp::DrawGroup(std::list<GameObject *> &group) {
@@ -193,29 +157,10 @@ void testApp::dragEvent(ofDragInfo dragInfo) {
 
 }
 
-void testApp::CreateRandomShape(ofVec2f at, bool player) {
+void testApp::CreateShape(ofVec2f at) {
   constexpr float mass = 1.0;
-  const float choice = ofRandomuf();
   const float size = ofRandom(5.0, 15.0);
   const float orientation = 2.0 * M_PI * ofRandomuf();
   const ofVec2f velocity = ofVec2f();
-  if (choice < 1.0 / 3.0) {
-    if (player) {
-      triangles.push_back(new Triangle(player, mass, size, orientation, at, velocity));
-    } else {
-      enemy_triangles.push_back(new Triangle(player, mass, size, orientation, at, velocity));
-    }
-  } else if (choice < 2.0 / 3.0) {
-    if (player) {
-      squares.push_back(new Square(player, mass, size, orientation, at, velocity));
-    } else {
-      enemy_squares.push_back(new Square(player, mass, size, orientation, at, velocity));
-    }
-  } else {
-    if (player) {
-      circles.push_back(new Circle(player, mass, size, orientation, at, velocity));
-    } else {
-      enemy_circles.push_back(new Circle(player, mass, size, orientation, at, velocity));
-    }
-  }
+  circles.push_back(new Circle(true, mass, size, orientation, at, velocity));
 }
