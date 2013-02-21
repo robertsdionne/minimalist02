@@ -11,8 +11,6 @@
 #include "circle.h"
 #include "gameobject.h"
 #include "ofMain.h"
-#include "triangle.h"
-#include "square.h"
 
 constexpr unsigned int GameObject::kMaxPopulation;
 constexpr float GameObject::kMaxSize;
@@ -59,13 +57,7 @@ void GameObject::MaybeReproduce(
     velocity = size * ofVec2f(
         kMaxComponentOfVelocity * ofRandomf(), kMaxComponentOfVelocity * ofRandomf());
     if (triangles.size() + circles.size() + squares.size() < kMaxPopulation) {
-      if (reproduce_type == 0) {
-        triangles.push_back(new Triangle(player, mass, size, orientation, position, -velocity));
-      } else if (reproduce_type == 1) {
-        circles.push_back(new Circle(player, mass, size, orientation, position, -velocity));
-      } else {
-        squares.push_back(new Square(player, mass, size, orientation, position, -velocity));
-      }
+      circles.push_back(new Circle(player, mass, size, orientation, position, -velocity));
     }
   }
 }

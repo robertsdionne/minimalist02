@@ -1,9 +1,6 @@
 #include "circle.h"
-#include "ex.h"
 #include "gameobject.h"
-#include "square.h"
 #include "testApp.h"
-#include "triangle.h"
 
 constexpr unsigned int testApp::kNumGameObjects;
 
