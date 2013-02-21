@@ -24,7 +24,7 @@ constexpr float GameObject::kMaxComponentOfVelocity;
 
 GameObject::GameObject(
     bool player, float mass, float size, float orientation, ofVec2f position, ofVec2f velocity)
-: player(player), neighbors(0), mass(mass), size(size), orientation(orientation), position(position), velocity(velocity), force() {}
+: player(player), neighbors(), food(0.8), mass(mass), size(size), orientation(orientation), position(position), velocity(velocity), force() {}
 
 GameObject::~GameObject() {}
 
@@ -34,13 +34,16 @@ void GameObject::Draw() const {
   ofScale(size, size);
   ofRotateZ(ofRadToDeg(orientation));
   ofPushStyle();
-  if (true) {
-    ofSetColor(color() / (21.0 / size));
-    ofNoFill();
-  } else {
-    ofSetColor(color());
-    ofNoFill();
+  if (food > 0) {
+    ofEnableAlphaBlending();
+    ofSetColor(ofColor(128, 0, 128).getLerped(ofColor(0, 0, 255), (size - 10) / 10.0), 255 * food);
+    ofFill();
+    ofSetLineWidth(0);
+    DrawInternal();
+    ofDisableAlphaBlending();
   }
+  ofSetColor(color() / (21.0 / size));
+  ofNoFill();
   ofSetLineWidth(size * kLineWidthScaleFactor);
   DrawInternal();
   ofPopStyle();

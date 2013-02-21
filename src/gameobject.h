@@ -39,7 +39,8 @@ public:
   
 public:
   bool player;
-  unsigned int neighbors;
+  std::list<GameObject *> neighbors;
+  float food;
   float mass;
   float size;
   float orientation;

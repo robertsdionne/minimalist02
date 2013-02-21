@@ -38,9 +38,10 @@ private:
   void RemoveDeadIndividuals(std::list<GameObject *> &group);
   void SteerGroup(std::list<GameObject *> &group, ofVec2f target);
   void UpdateGroup(std::list<GameObject *> &group, bool move);
+  void Launch(std::list<GameObject *> &group);
   
 private:
-  static const unsigned int kNumGameObjects = 300;
+  static const unsigned int kNumGameObjects = 50;
   
   std::list<GameObject *> circles;
   
