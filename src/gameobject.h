@@ -16,22 +16,22 @@
 
 class GameObject {
 public:
-  GameObject(bool player, float mass, float size, float orientation, ofVec2f position, ofVec2f velocity);
+  GameObject(bool player, float mass, float size, float food, float orientation, ofVec2f position, ofVec2f velocity);
   
   virtual ~GameObject();
   
-  virtual ofColor color() const = 0;
+  virtual ofColor membrane_color() const = 0;
+  virtual ofColor wall_cell_color() const = 0;
+  virtual ofColor interior_cell_color() const = 0;
   
   virtual float reproductivity() const = 0;
+  virtual float mortality() const = 0;
   
   void Draw() const;
   
   virtual void DrawInternal() const = 0;
   
-  virtual void MaybeReproduce(
-      std::list<GameObject *> &triangles,
-      std::list<GameObject *> &circles,
-      std::list<GameObject *> &squares, unsigned int reproduce_type);
+  virtual void MaybeReproduce(std::list<GameObject *> &group);
 
   void Update(float dt);
   
@@ -43,18 +43,24 @@ public:
   float food;
   float mass;
   float size;
+  float age;
+  float poison;
   float orientation;
   ofVec2f position;
   ofVec2f velocity;
   ofVec2f force;
   
-  static constexpr unsigned int kMaxPopulation = 100;
-  static constexpr float kMaxSize = 50.0;
+  static constexpr unsigned int kMaxPopulation = 200;
+  static constexpr float kMinSize = 2.0;
+  static constexpr float kBreederSize = 10.0;
+  static constexpr float kMaxSize = 20.0;
   
 private:
-  static constexpr float kChildScaleFactor = 0.5;
+  static constexpr float kChildScaleFactor = 0.8;
   static constexpr float kDrag = 0.9;
-  static constexpr float kGrowthRate = 0.000;
+  static constexpr float kGrowthRate = 0.005;
+  static constexpr float kAgeRate = 0.0001;
+  static constexpr float kWallMortality = 0.000005;
   static constexpr float kLineWidthScaleFactor = 0.25;
   static constexpr float kMaxComponentOfVelocity = 10.0;};
 

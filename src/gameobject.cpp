@@ -13,6 +13,8 @@
 #include "ofMain.h"
 
 constexpr unsigned int GameObject::kMaxPopulation;
+constexpr float GameObject::kMinSize;
+constexpr float GameObject::kBreederSize;
 constexpr float GameObject::kMaxSize;
 constexpr float GameObject::kChildScaleFactor;
 constexpr float GameObject::kDrag;
@@ -21,8 +23,8 @@ constexpr float GameObject::kLineWidthScaleFactor;
 constexpr float GameObject::kMaxComponentOfVelocity;
 
 GameObject::GameObject(
-    bool player, float mass, float size, float orientation, ofVec2f position, ofVec2f velocity)
-: player(player), neighbors(), food(0.8), mass(mass), size(size), orientation(orientation), position(position), velocity(velocity), force() {}
+    bool player, float mass, float size, float food, float orientation, ofVec2f position, ofVec2f velocity)
+: player(player), neighbors(), food(food), mass(mass), size(size), poison(0), age(0), orientation(orientation), position(position), velocity(velocity), force() {}
 
 GameObject::~GameObject() {}
 
@@ -34,13 +36,15 @@ void GameObject::Draw() const {
   ofPushStyle();
   if (food > 0) {
     ofEnableAlphaBlending();
-    ofSetColor(ofColor(128, 0, 128).getLerped(ofColor(0, 0, 255), (size - 10) / 10.0), 255 * food);
+    ofSetColor(interior_cell_color().getLerped(wall_cell_color(), (size - 10) / 10.0), 255 * food);
     ofFill();
     ofSetLineWidth(0);
     DrawInternal();
     ofDisableAlphaBlending();
   }
-  ofSetColor(color() / (21.0 / size));
+  ofColor membrane = membrane_color();
+  membrane.setSaturation(255 * (1-age));
+  ofSetColor(membrane / (21.0 / size));
   ofNoFill();
   ofSetLineWidth(size * kLineWidthScaleFactor);
   DrawInternal();
@@ -48,17 +52,17 @@ void GameObject::Draw() const {
   ofPopMatrix();
 }
 
-void GameObject::MaybeReproduce(
-    std::list<GameObject *> &triangles,
-    std::list<GameObject *> &circles,
-    std::list<GameObject *> &squares, unsigned int reproduce_type) {
-  if (ofRandomuf() < reproductivity()) {
+void GameObject::MaybeReproduce(std::list<GameObject *> &group) {
+  if (size <= kBreederSize && food >= 0.5 && ofRandomuf() < reproductivity() && group.size() < kMaxPopulation) {
     size *= kChildScaleFactor;
-    velocity = size * ofVec2f(
-        kMaxComponentOfVelocity * ofRandomf(), kMaxComponentOfVelocity * ofRandomf());
-    if (triangles.size() + circles.size() + squares.size() < kMaxPopulation) {
-      circles.push_back(new Circle(player, mass, size, orientation, position, -velocity));
-    }
+    food -= 0.5;
+    age = 0;
+    const ofVec2f epsilon = ofVec2f(0.1, 0.1);
+    group.push_back(new Circle(player, mass, size, 0, orientation, position + epsilon, velocity));
+  }
+  const float cell_mortality = size <= kBreederSize ? mortality() : kWallMortality;
+  if (ofRandomuf() < cell_mortality * age) {
+    size = 0;
   }
 }
 
@@ -83,8 +87,11 @@ void GameObject::Update(float dt) {
 
 void GameObject::UpdateInternal(float dt) {
   orientation += ofDegToRad(ofRandomf());
-  if (size < kMaxSize) {
+  if (size < kBreederSize - kGrowthRate) {
     size += kGrowthRate * ofRandomuf();
+  }
+  if (age <= 1.0 - kAgeRate) {
+    age += kAgeRate * ofRandomuf();
   }
   force += -kDrag * velocity;
 }

@@ -11,32 +11,33 @@ void testApp::setup() {
   reproduce_type = 0;
   enemy_target_angle = 0;
   for (unsigned int i = 0; i < kNumGameObjects; ++i) {
-    CreateShape(circles, ofVec2f(ofRandomWidth(), ofRandomHeight()));
+    CreateShape(circles, true, ofVec2f(ofRandomWidth(), ofRandomHeight()));
   }
   for (unsigned int i = 0; i < kNumGameObjects; ++i) {
-    CreateShape(enemy_circles, ofVec2f(ofRandomWidth(), ofRandomHeight()));
+    CreateShape(enemy_circles, false, ofVec2f(ofRandomWidth(), ofRandomHeight()));
   }
 }
 
 //--------------------------------------------------------------
 void testApp::update() {
-  UpdateGroup(circles, mean_overlap, mouse_position, mean_overlap < 0.5);
+  UpdateGroup(circles, mean_overlap, mean_food, mouse_position, mean_overlap < 0.5, true);
   enemy_target_angle += ofSignedNoise(ofGetElapsedTimef() / 5.0) * 0.05;
   const float radius = ofGetHeight() / 3.0;
   enemy_center_of_mass = FindCenterOfMass(enemy_circles);
   enemy_target = ofVec2f(radius * cos(enemy_target_angle), radius * sin(enemy_target_angle)) + enemy_center_of_mass;
   Wrap(enemy_target);
-  UpdateGroup(enemy_circles, mean_enemy_overlap, enemy_target, mean_enemy_overlap < 0.5);
+  UpdateGroup(enemy_circles, mean_enemy_overlap, mean_enemy_food, enemy_target, mean_enemy_overlap < 0.5, false);
   RemoveDeadIndividuals(circles);
   RemoveDeadIndividuals(enemy_circles);
+  old_circle_key_down = circle_key_down;
 }
 
-void testApp::UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, ofVec2f target, bool move) {
+void testApp::UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, ofVec2f target, bool move, bool player) {
   if (move) {
     SteerGroup(group, target);
   }
-  Collide(group, mean_group_overlap);
-  if (circle_key_down) {
+  Collide(group, mean_group_overlap, mean_group_food);
+  if (player && !old_circle_key_down && circle_key_down) {
     Launch(group);
   }
   for (auto individual : group) {
@@ -44,6 +45,7 @@ void testApp::UpdateGroup(std::list<GameObject *> &group, float &mean_group_over
     if (individual->food >= 0.0001) {
       individual->food -= 0.0001;
     }
+    individual->MaybeReproduce(group);
   }
 }
 
@@ -73,9 +75,7 @@ void testApp::Launch(std::list<GameObject *> &group) {
     });
     if (!found_closer_neighbor) {
       ofVec2f desired_velocity = mouse_position - individual->position;
-      if (desired_velocity.length() < 10000.0) {
-        desired_velocity.scale(10000.0);
-      }
+      desired_velocity.scale(100000.0);
       individual->force += desired_velocity - individual->velocity;
       break;
     }
@@ -97,9 +97,10 @@ void testApp::Wrap(ofVec2f &position) {
   }
 }
 
-void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap) {
+void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food) {
   float total_overlap = 0;
-  std::for_each(group.begin(), group.end(), [&total_overlap, group] (GameObject *const individual0) {
+  float total_food = 0;
+  std::for_each(group.begin(), group.end(), [&total_overlap, &total_food, group] (GameObject *const individual0) {
     std::list<GameObject *> overlapping;
     std::for_each(group.begin(), group.end(), [&total_overlap, individual0, &overlapping] (GameObject *const individual1) {
       if (individual0 != individual1) {
@@ -119,7 +120,7 @@ void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap)
     const float food_diffusion_amount = 0.01;
     individual0->neighbors = overlapping;
     std::for_each(overlapping.begin(), overlapping.end(), [individual0, size_diffusion_amount, food_diffusion_amount] (GameObject *const individual1) {
-      if (ofRandomuf() < 0.1 && individual0->size > 2 && individual1->size < 20) {
+      if (ofRandomuf() < 0.1 && individual0->size > GameObject::kMinSize && individual1->size < GameObject::kMaxSize) {
         individual0->size -= size_diffusion_amount;
         individual1->size += size_diffusion_amount;
       }
@@ -128,8 +129,10 @@ void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap)
         individual1->food += food_diffusion_amount;
       }
     });
+    total_food += individual0->food;
   });
   mean_group_overlap = total_overlap / group.size();
+  mean_group_food = total_food / group.size();
 }
 
 void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
@@ -151,7 +154,7 @@ void testApp::draw() {
   ofCircle(enemy_target, 2);
   //ofCircle(enemy_center_of_mass, 2);
   std::stringstream overlap;
-  overlap << mean_overlap;
+  overlap << circles.size() << std::endl << enemy_circles.size();
   ofDrawBitmapString(overlap.str(), 10, 10);
 }
 
@@ -165,7 +168,6 @@ void testApp::DrawGroup(std::list<GameObject *> &group) {
 void testApp::keyPressed(int key) {
   switch (key) {
     case 'w':
-      triangle_key_down = true;
       reproduce_type = 0;
       break;
     case ' ':
@@ -185,7 +187,6 @@ void testApp::keyPressed(int key) {
 void testApp::keyReleased(int key) {
   switch (key) {
     case 'w':
-      triangle_key_down = false;
       break;
     case ' ':
       circle_key_down = false;
@@ -210,7 +211,15 @@ void testApp::mouseDragged(int x, int y, int button) {
     const float actual_distance = r.length();
     const float colliding_distance = individual->size;
     if (actual_distance < colliding_distance) {
-      individual->food = 1;
+      individual->food += 50;
+    }
+  });
+  std::for_each(enemy_circles.begin(), enemy_circles.end(), [x, y] (GameObject *const individual) {
+    const ofVec2f r = individual->position - ofVec2f(x, y);
+    const float actual_distance = r.length();
+    const float colliding_distance = individual->size;
+    if (actual_distance < colliding_distance) {
+      individual->food += 50;
     }
   });
 }
@@ -218,17 +227,16 @@ void testApp::mouseDragged(int x, int y, int button) {
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button) {
   mouse_down = true;
+  mouseDragged(x, y, button);
 }
 
 void testApp::SteerGroup(std::list<GameObject *> &group, ofVec2f target) {
   std::for_each(group.begin(), group.end(), [target] (GameObject *const individual) {
-    if (individual->player) {
-      ofVec2f desired_velocity = target - individual->position;
-      if (desired_velocity.length() < 1000.0) {
-        desired_velocity.scale(1000.0);
-      }
-      individual->force += desired_velocity - individual->velocity;
+    ofVec2f desired_velocity = target - individual->position;
+    if (desired_velocity.length() < 1000.0) {
+      desired_velocity.scale(1000.0);
     }
+    individual->force += desired_velocity - individual->velocity;
   });
 }
 
@@ -252,10 +260,10 @@ void testApp::dragEvent(ofDragInfo dragInfo) {
 
 }
 
-void testApp::CreateShape(std::list<GameObject *> &group, ofVec2f at) {
+void testApp::CreateShape(std::list<GameObject *> &group, bool player, ofVec2f at) {
   constexpr float mass = 1.0;
   const float size = 10;
   const float orientation = 2.0 * M_PI * ofRandomuf();
   const ofVec2f velocity = ofVec2f();
-  group.push_back(new Circle(true, mass, size, orientation, at, velocity));
+  group.push_back(new Circle(player, mass, size, 0.0, orientation, at, velocity));
 }

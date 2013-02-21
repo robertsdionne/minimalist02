@@ -32,13 +32,13 @@ public:
   void gotMessage(ofMessage msg);
   
 private:
-  void Collide(std::list<GameObject *> &group, float &mean_group_overlap);
+  void Collide(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food);
   ofVec2f FindCenterOfMass(std::list<GameObject *> &group);
-  void CreateShape(std::list<GameObject *> &group, ofVec2f at);
+  void CreateShape(std::list<GameObject *> &group, bool player, ofVec2f at);
   void DrawGroup(std::list<GameObject *> &group);
   void RemoveDeadIndividuals(std::list<GameObject *> &group);
   void SteerGroup(std::list<GameObject *> &group, ofVec2f target);
-  void UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, ofVec2f target, bool move);
+  void UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, ofVec2f target, bool move, bool player);
   void Launch(std::list<GameObject *> &group);
   void Wrap(ofVec2f &position);
   
@@ -56,9 +56,11 @@ private:
   
   float mean_overlap;
   float mean_enemy_overlap;
+  float mean_food;
+  float mean_enemy_food;
   
   bool mouse_down;
-  bool triangle_key_down;
+  bool old_circle_key_down;
   bool circle_key_down;
   bool square_key_down;
 };
