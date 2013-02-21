@@ -9,24 +9,35 @@ void testApp::setup() {
   ofEnableSmoothing();
   mouse_position = ofVec2f(ofGetWidth() / 2, ofGetHeight() / 2);
   reproduce_type = 0;
+  enemy_target_angle = 0;
   for (unsigned int i = 0; i < kNumGameObjects; ++i) {
-    CreateShape(ofVec2f(ofRandomWidth(), ofRandomHeight()));
+    CreateShape(circles, ofVec2f(ofRandomWidth(), ofRandomHeight()));
+  }
+  for (unsigned int i = 0; i < kNumGameObjects; ++i) {
+    CreateShape(enemy_circles, ofVec2f(ofRandomWidth(), ofRandomHeight()));
   }
 }
 
 //--------------------------------------------------------------
 void testApp::update() {
-  UpdateGroup(circles, mean_overlap < 0.5);
+  UpdateGroup(circles, mean_overlap, mouse_position, mean_overlap < 0.5);
+  enemy_target_angle += ofSignedNoise(ofGetElapsedTimef() / 5.0) * 0.05;
+  const float radius = ofGetHeight() / 3.0;
+  enemy_center_of_mass = FindCenterOfMass(enemy_circles);
+  enemy_target = ofVec2f(radius * cos(enemy_target_angle), radius * sin(enemy_target_angle)) + enemy_center_of_mass;
+  Wrap(enemy_target);
+  UpdateGroup(enemy_circles, mean_enemy_overlap, enemy_target, mean_enemy_overlap < 0.5);
   RemoveDeadIndividuals(circles);
+  RemoveDeadIndividuals(enemy_circles);
 }
 
-void testApp::UpdateGroup(std::list<GameObject *> &group, bool move) {
+void testApp::UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, ofVec2f target, bool move) {
   if (move) {
-    SteerGroup(group, mouse_position);
+    SteerGroup(group, target);
   }
-  Collide(circles);
+  Collide(group, mean_group_overlap);
   if (circle_key_down) {
-    Launch(circles);
+    Launch(group);
   }
   for (auto individual : group) {
     individual->Update(1.0 / ofGetFrameRate());
@@ -36,7 +47,7 @@ void testApp::UpdateGroup(std::list<GameObject *> &group, bool move) {
   }
 }
 
-void testApp::Launch(std::list<GameObject *> &group) {
+ofVec2f testApp::FindCenterOfMass(std::list<GameObject *> &group) {
   ofVec2f center_of_mass;
   float total_mass;
   std::for_each(group.begin(), group.end(), [&center_of_mass, &total_mass] (GameObject *const individual) {
@@ -44,6 +55,11 @@ void testApp::Launch(std::list<GameObject *> &group) {
     total_mass += individual->size;
   });
   center_of_mass /= total_mass;
+  return center_of_mass;
+}
+
+void testApp::Launch(std::list<GameObject *> &group) {
+  ofVec2f center_of_mass = FindCenterOfMass(group);
   std::list<GameObject *>::iterator start = group.begin();
   std::advance(start, ofRandom(group.size()));
   GameObject *individual = *start;
@@ -66,7 +82,22 @@ void testApp::Launch(std::list<GameObject *> &group) {
   }
 }
 
-void testApp::Collide(std::list<GameObject *> &group) {
+void testApp::Wrap(ofVec2f &position) {
+  if (position.x < 0) {
+    position.x += ofGetWidth();
+  }
+  if (position.x >= ofGetWidth()) {
+    position.x -= ofGetWidth();
+  }
+  if (position.y < 0) {
+    position.y += ofGetHeight();
+  }
+  if (position.y >= ofGetHeight()) {
+    position.y -= ofGetHeight();
+  }
+}
+
+void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap) {
   float total_overlap = 0;
   std::for_each(group.begin(), group.end(), [&total_overlap, group] (GameObject *const individual0) {
     std::list<GameObject *> overlapping;
@@ -98,7 +129,7 @@ void testApp::Collide(std::list<GameObject *> &group) {
       }
     });
   });
-  mean_overlap = total_overlap / group.size();
+  mean_group_overlap = total_overlap / group.size();
 }
 
 void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
@@ -116,6 +147,9 @@ void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
 void testApp::draw() {
   ofBackground(0.0, 0.0, 0.0);
   DrawGroup(circles);
+  DrawGroup(enemy_circles);
+  ofCircle(enemy_target, 2);
+  //ofCircle(enemy_center_of_mass, 2);
   std::stringstream overlap;
   overlap << mean_overlap;
   ofDrawBitmapString(overlap.str(), 10, 10);
@@ -218,10 +252,10 @@ void testApp::dragEvent(ofDragInfo dragInfo) {
 
 }
 
-void testApp::CreateShape(ofVec2f at) {
+void testApp::CreateShape(std::list<GameObject *> &group, ofVec2f at) {
   constexpr float mass = 1.0;
   const float size = 10;
   const float orientation = 2.0 * M_PI * ofRandomuf();
   const ofVec2f velocity = ofVec2f();
-  circles.push_back(new Circle(true, mass, size, orientation, at, velocity));
+  group.push_back(new Circle(true, mass, size, orientation, at, velocity));
 }
