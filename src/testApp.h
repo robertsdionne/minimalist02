@@ -40,12 +40,15 @@ private:
   void UpdateGroup(std::list<GameObject *> &group, bool move);
   
 private:
-  static const unsigned int kNumGameObjects = 200;
+  static const unsigned int kNumGameObjects = 300;
   
   std::list<GameObject *> circles;
   
   ofVec2f mouse_position;
   unsigned int reproduce_type;
+  
+  float mean_collisions;
+  float mean_overlap;
   
   bool mouse_down;
   bool triangle_key_down;

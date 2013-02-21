@@ -39,6 +39,7 @@ public:
   
 public:
   bool player;
+  unsigned int neighbors;
   float mass;
   float size;
   float orientation;
@@ -52,7 +53,7 @@ public:
 private:
   static constexpr float kChildScaleFactor = 0.5;
   static constexpr float kDrag = 0.9;
-  static constexpr float kGrowthRate = 0.005;
+  static constexpr float kGrowthRate = 0.000;
   static constexpr float kLineWidthScaleFactor = 0.25;
   static constexpr float kMaxComponentOfVelocity = 10.0;};
 

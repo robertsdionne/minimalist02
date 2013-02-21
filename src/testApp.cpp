@@ -18,7 +18,7 @@ void testApp::setup() {
 
 //--------------------------------------------------------------
 void testApp::update() {
-  UpdateGroup(circles, circle_key_down);
+  UpdateGroup(circles, mean_overlap < 0.5 || circle_key_down);
   RemoveDeadIndividuals(circles);
 }
 
@@ -33,21 +33,33 @@ void testApp::UpdateGroup(std::list<GameObject *> &group, bool move) {
 }
 
 void testApp::Collide(std::list<GameObject *> &group) {
-  std::list<GameObject *>::iterator i, j;
-  for (i = group.begin(); i != group.end(); ++i) {
-    j = i;
-    GameObject *individual0 = *i;
-    for (std::advance(j, 1); j != group.end(); ++j) {
-      GameObject *individual1 = *j;
-      const ofVec2f r = individual1->position - individual0->position;
-      const float actual_distance = r.length();
-      const float colliding_distance = individual0->size + individual1->size;
-      if (actual_distance < colliding_distance) {
-        individual0->force -= 10.0 * r.normalized() * pow(colliding_distance - actual_distance, 1);
-        individual1->force += 10.0 * r.normalized() * pow(colliding_distance - actual_distance, 1);
+  float total_overlap = 0;
+  std::for_each(group.begin(), group.end(), [&total_overlap, group] (GameObject *const individual0) {
+    std::list<GameObject *> overlapping;
+    std::for_each(group.begin(), group.end(), [&total_overlap, individual0, &overlapping] (GameObject *const individual1) {
+      if (individual0 != individual1) {
+        const ofVec2f r = individual1->position - individual0->position;
+        const float actual_distance = r.length();
+        const float colliding_distance = individual0->size + individual1->size;
+        if (actual_distance < colliding_distance) {
+          overlapping.push_back(individual1);
+          const float overlap = colliding_distance - actual_distance;
+          total_overlap += overlap / 2;
+          individual0->force -= 5.0 * r.normalized() * pow(overlap, 1);
+          individual1->force += 5.0 * r.normalized() * pow(overlap, 1);
+        }
       }
-    }
-  }
+    });
+    const float size_diffusion_amount = 0.01 * overlapping.size();
+    individual0->neighbors = overlapping.size();
+    std::for_each(overlapping.begin(), overlapping.end(), [individual0, size_diffusion_amount] (GameObject *const individual1) {
+      if (ofRandomuf() < 0.1 && individual0->size > 2 && individual1->size < 20) {
+        individual0->size -= size_diffusion_amount;
+        individual1->size += size_diffusion_amount;
+      }
+    });
+  });
+  mean_overlap = total_overlap / group.size();
 }
 
 void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
@@ -65,6 +77,9 @@ void testApp::RemoveDeadIndividuals(std::list<GameObject *> &group) {
 void testApp::draw() {
   ofBackground(0.0, 0.0, 0.0);
   DrawGroup(circles);
+  std::stringstream overlap;
+  overlap << mean_overlap;
+  ofDrawBitmapString(overlap.str(), 10, 10);
 }
 
 void testApp::DrawGroup(std::list<GameObject *> &group) {
@@ -80,7 +95,7 @@ void testApp::keyPressed(int key) {
       triangle_key_down = true;
       reproduce_type = 0;
       break;
-    case 'd':
+    case ' ':
       circle_key_down = true;
       reproduce_type = 1;
       break;
@@ -99,7 +114,7 @@ void testApp::keyReleased(int key) {
     case 'w':
       triangle_key_down = false;
       break;
-    case 'd':
+    case ' ':
       circle_key_down = false;
       break;
     case 'a':
@@ -159,7 +174,7 @@ void testApp::dragEvent(ofDragInfo dragInfo) {
 
 void testApp::CreateShape(ofVec2f at) {
   constexpr float mass = 1.0;
-  const float size = ofRandom(5.0, 15.0);
+  const float size = 10;
   const float orientation = 2.0 * M_PI * ofRandomuf();
   const ofVec2f velocity = ofVec2f();
   circles.push_back(new Circle(true, mass, size, orientation, at, velocity));
