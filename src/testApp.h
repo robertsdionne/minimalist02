@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <list>
 
 #include "gameobject.h"
@@ -32,13 +33,33 @@ public:
   void gotMessage(ofMessage msg);
   
 private:
-  void Collide(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, float &total_group_food);
+  struct Statistic {
+    Statistic()
+    : min(std::numeric_limits<float>::infinity()),
+      max(-std::numeric_limits<float>::infinity()),
+      total(0),
+      mean(0),
+      variance(0) {}
+    float min;
+    float max;
+    float total;
+    float mean;
+    float variance;
+  };
+  
+  struct Statistics {
+    Statistics() : overlap(), food() {}
+    Statistic overlap;
+    Statistic food;
+  };
+  
+  void Collide(std::list<GameObject *> &group, Statistics &statistics);
   ofVec2f FindCenterOfMass(std::list<GameObject *> &group);
   void CreateShape(std::list<GameObject *> &group, bool player, ofVec2f at);
   void DrawGroup(std::list<GameObject *> &group);
   void RemoveDeadIndividuals(std::list<GameObject *> &group);
   void SteerGroup(std::list<GameObject *> &group, ofVec2f target);
-  void UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, float &total_group_food, ofVec2f target, bool move, bool player);
+  void UpdateGroup(std::list<GameObject *> &group, Statistics &statistics, ofVec2f target, bool move, bool player);
   void Launch(std::list<GameObject *> &group);
   void Wrap(ofVec2f &position);
   
@@ -54,12 +75,8 @@ private:
   ofVec2f enemy_center_of_mass;
   unsigned int reproduce_type;
   
-  float mean_overlap;
-  float mean_enemy_overlap;
-  float mean_food;
-  float total_food;
-  float mean_enemy_food;
-  float total_enemy_food;
+  Statistics statistics;
+  Statistics enemy_statistics;
   
   bool mouse_down;
   bool old_circle_key_down;
