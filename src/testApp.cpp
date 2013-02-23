@@ -22,21 +22,21 @@ void testApp::setup() {
 void testApp::update() {
   RemoveDeadIndividuals(circles);
   RemoveDeadIndividuals(enemy_circles);
-  UpdateGroup(circles, mean_overlap, mean_food, mouse_position, mean_overlap < 0.5, true);
+  UpdateGroup(circles, mean_overlap, mean_food, total_food, mouse_position, mean_overlap < 0.5, true);
   enemy_target_angle += ofSignedNoise(ofGetElapsedTimef() / 5.0) * 0.05;
   const float radius = ofGetHeight() / 3.0;
   enemy_center_of_mass = FindCenterOfMass(enemy_circles);
   enemy_target = ofVec2f(radius * cos(enemy_target_angle), radius * sin(enemy_target_angle)) + enemy_center_of_mass;
   Wrap(enemy_target);
-  UpdateGroup(enemy_circles, mean_enemy_overlap, mean_enemy_food, enemy_target, mean_enemy_overlap < 0.5, false);
+  UpdateGroup(enemy_circles, mean_enemy_overlap, mean_enemy_food, total_enemy_food, enemy_target, mean_enemy_overlap < 0.5, false);
   old_circle_key_down = circle_key_down;
 }
 
-void testApp::UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, ofVec2f target, bool move, bool player) {
+void testApp::UpdateGroup(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, float &total_group_food, ofVec2f target, bool move, bool player) {
   if (move) {
     SteerGroup(group, target);
   }
-  Collide(group, mean_group_overlap, mean_group_food);
+  Collide(group, mean_group_overlap, mean_group_food, total_group_food);
   if (player && !old_circle_key_down && circle_key_down) {
     Launch(group);
   }
@@ -97,7 +97,7 @@ void testApp::Wrap(ofVec2f &position) {
   }
 }
 
-void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food) {
+void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap, float &mean_group_food, float &total_group_food) {
   float total_overlap = 0;
   float total_food = 0;
   std::for_each(group.begin(), group.end(), [&total_overlap, &total_food, group] (GameObject *const individual0) {
@@ -132,6 +132,7 @@ void testApp::Collide(std::list<GameObject *> &group, float &mean_group_overlap,
     total_food += individual0->food;
   });
   mean_group_overlap = total_overlap / group.size();
+  total_group_food = total_food;
   mean_group_food = total_food / group.size();
 }
 
@@ -219,7 +220,7 @@ void testApp::mouseDragged(int x, int y, int button) {
     if (actual_distance < colliding_distance) {
       if (shift_key_down) {
         individual->size = 0;
-      } else {
+      } else if (total_food < circles.size() - 10) {
         individual->food += 10;
       }
     }
@@ -231,7 +232,7 @@ void testApp::mouseDragged(int x, int y, int button) {
     if (actual_distance < colliding_distance) {
       if (shift_key_down) {
         individual->size = 0;
-      } else {
+      } else if (total_enemy_food < enemy_circles.size() - 10) {
         individual->food += 10;
       }
     }
