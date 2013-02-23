@@ -115,13 +115,13 @@ void GameObject::UpdateInternal(float dt) {
     const ofVec2f r = position - neighbor->position;
     const float actual_distance = r.length();
     const float colliding_distance = size + neighbor->size;
-    if ((size > 12.0 && neighbor->size > 12.0 && actual_distance > colliding_distance * 2.0)
+    if ((size > 12.0 && neighbor->size > 12.0 && actual_distance > colliding_distance * 8.0)
         || actual_distance > colliding_distance * 1.3) {
       connected.erase(neighbor);
     }
   });
   std::for_each(neighbors.begin(), neighbors.end(), [&] (GameObject *const neighbor) {
-    if (parity == neighbor->parity || (size > 12.0 && neighbor->size > 12.0)) {
+    if ((parity == neighbor->parity && connected.size() < 2) || (size > 12.0 && neighbor->size > 12.0)) {
       connected.insert(neighbor);
     }
   });

@@ -223,7 +223,7 @@ void testApp::mouseDragged(int x, int y, int button) {
     if (actual_distance < colliding_distance) {
       if (shift_key_down) {
         individual->size = 0;
-      } else if (statistics.food.total < circles.size() - 10) {
+      } else if (statistics.food.total < circles.size()) {
         individual->food += 10;
       }
     }
@@ -235,7 +235,7 @@ void testApp::mouseDragged(int x, int y, int button) {
     if (actual_distance < colliding_distance) {
       if (shift_key_down) {
         individual->size = 0;
-      } else if (enemy_statistics.food.total < enemy_circles.size() - 10) {
+      } else if (enemy_statistics.food.total < enemy_circles.size()) {
         individual->food += 10;
       }
     }
