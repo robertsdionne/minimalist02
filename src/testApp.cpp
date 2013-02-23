@@ -20,6 +20,8 @@ void testApp::setup() {
 
 //--------------------------------------------------------------
 void testApp::update() {
+  RemoveDeadIndividuals(circles);
+  RemoveDeadIndividuals(enemy_circles);
   UpdateGroup(circles, mean_overlap, mean_food, mouse_position, mean_overlap < 0.5, true);
   enemy_target_angle += ofSignedNoise(ofGetElapsedTimef() / 5.0) * 0.05;
   const float radius = ofGetHeight() / 3.0;
@@ -27,8 +29,6 @@ void testApp::update() {
   enemy_target = ofVec2f(radius * cos(enemy_target_angle), radius * sin(enemy_target_angle)) + enemy_center_of_mass;
   Wrap(enemy_target);
   UpdateGroup(enemy_circles, mean_enemy_overlap, mean_enemy_food, enemy_target, mean_enemy_overlap < 0.5, false);
-  RemoveDeadIndividuals(circles);
-  RemoveDeadIndividuals(enemy_circles);
   old_circle_key_down = circle_key_down;
 }
 
@@ -178,6 +178,9 @@ void testApp::keyPressed(int key) {
       square_key_down = true;
       reproduce_type = 2;
       break;
+    case 'x':
+      shift_key_down = true;
+      break;
     default:
       break;
   }
@@ -194,6 +197,9 @@ void testApp::keyReleased(int key) {
     case 'a':
       square_key_down = false;
       break;
+    case 'x':
+      shift_key_down = false;
+      break;
     default:
       break;
   }
@@ -206,20 +212,28 @@ void testApp::mouseMoved(int x, int y) {
 
 //--------------------------------------------------------------
 void testApp::mouseDragged(int x, int y, int button) {
-  std::for_each(circles.begin(), circles.end(), [x, y] (GameObject *const individual) {
+  std::for_each(circles.begin(), circles.end(), [this, x, y] (GameObject *const individual) {
     const ofVec2f r = individual->position - ofVec2f(x, y);
     const float actual_distance = r.length();
     const float colliding_distance = individual->size;
     if (actual_distance < colliding_distance) {
-      individual->food += 50;
+      if (shift_key_down) {
+        individual->size = 0;
+      } else {
+        individual->food += 10;
+      }
     }
   });
-  std::for_each(enemy_circles.begin(), enemy_circles.end(), [x, y] (GameObject *const individual) {
+  std::for_each(enemy_circles.begin(), enemy_circles.end(), [this, x, y] (GameObject *const individual) {
     const ofVec2f r = individual->position - ofVec2f(x, y);
     const float actual_distance = r.length();
     const float colliding_distance = individual->size;
     if (actual_distance < colliding_distance) {
-      individual->food += 50;
+      if (shift_key_down) {
+        individual->size = 0;
+      } else {
+        individual->food += 10;
+      }
     }
   });
 }

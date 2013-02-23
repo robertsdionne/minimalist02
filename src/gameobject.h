@@ -59,8 +59,8 @@ private:
   static constexpr float kChildScaleFactor = 0.8;
   static constexpr float kDrag = 0.9;
   static constexpr float kGrowthRate = 0.005;
-  static constexpr float kAgeRate = 0.0001;
-  static constexpr float kWallMortality = 0.000005;
+  static constexpr float kAgeRate = 0.0005;
+  static constexpr float kWallMortality = 0.00001;
   static constexpr float kLineWidthScaleFactor = 0.25;
   static constexpr float kMaxComponentOfVelocity = 10.0;};
 

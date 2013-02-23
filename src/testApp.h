@@ -62,5 +62,6 @@ private:
   bool mouse_down;
   bool old_circle_key_down;
   bool circle_key_down;
+  bool shift_key_down;
   bool square_key_down;
 };

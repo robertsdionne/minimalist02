@@ -43,7 +43,7 @@ void GameObject::Draw() const {
     ofDisableAlphaBlending();
   }
   ofColor membrane = membrane_color();
-  membrane.setSaturation(255 * (1-age));
+  membrane.setSaturation(255 * (1-age * age * age));
   ofSetColor(membrane / (21.0 / size));
   ofNoFill();
   ofSetLineWidth(size * kLineWidthScaleFactor);
@@ -61,7 +61,7 @@ void GameObject::MaybeReproduce(std::list<GameObject *> &group) {
     group.push_back(new Circle(player, mass, size, 0, orientation, position + epsilon, velocity));
   }
   const float cell_mortality = size <= kBreederSize ? mortality() : kWallMortality;
-  if (ofRandomuf() < cell_mortality * age) {
+  if (ofRandomuf() < cell_mortality * age * age * age) {
     size = 0;
   }
 }

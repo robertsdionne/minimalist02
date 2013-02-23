@@ -32,7 +32,7 @@ public:
   
 private:
   static constexpr float kReproductivity = 0.001;
-  static constexpr float kMortality = 0.00005;
+  static constexpr float kMortality = 0.002;
   static const ofColor kMembraneColor;
   static const ofColor kWallCellColor;
   static const ofColor kInteriorCellColor;
