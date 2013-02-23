@@ -99,9 +99,9 @@ void testApp::Wrap(ofVec2f &position) {
 
 void testApp::Collide(std::list<GameObject *> &group, Statistics &statistics) {
   statistics = Statistics();
-  std::for_each(group.begin(), group.end(), [&statistics, group] (GameObject *const individual0) {
+  std::for_each(group.begin(), group.end(), [&] (GameObject *const individual0) {
     std::list<GameObject *> overlapping;
-    std::for_each(group.begin(), group.end(), [&statistics, individual0, &overlapping] (GameObject *const individual1) {
+    std::for_each(group.begin(), group.end(), [&] (GameObject *const individual1) {
       if (individual0 != individual1) {
         const ofVec2f r = individual1->position - individual0->position;
         const float actual_distance = r.length();
@@ -120,8 +120,9 @@ void testApp::Collide(std::list<GameObject *> &group, Statistics &statistics) {
     const float size_diffusion_amount = 0.01 * overlapping.size();
     const float food_diffusion_amount = 0.01;
     individual0->neighbors = overlapping;
-    std::for_each(overlapping.begin(), overlapping.end(), [individual0, size_diffusion_amount, food_diffusion_amount] (GameObject *const individual1) {
-      if (ofRandomuf() < 0.1 && individual0->size > GameObject::kMinSize && individual1->size < GameObject::kMaxSize) {
+    std::for_each(overlapping.begin(), overlapping.end(), [&] (GameObject *const individual1) {
+      if (ofRandomuf() < 0.1 && individual0->size > GameObject::kMinSize
+          && individual1->size < GameObject::kMaxSize) {
         individual0->size -= size_diffusion_amount;
         individual1->size += size_diffusion_amount;
       }
@@ -130,6 +131,8 @@ void testApp::Collide(std::list<GameObject *> &group, Statistics &statistics) {
         individual1->food += food_diffusion_amount;
       }
     });
+//    std::for_each(individual0->connected.begin(), individual0->connected.end(), [&] (GameObject *const individual1) {
+//    });
     statistics.food.total += individual0->food;
   });
   statistics.overlap.mean = statistics.overlap.total / group.size();

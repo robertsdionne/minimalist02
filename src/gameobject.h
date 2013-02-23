@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <list>
+#include <set>
 
 #include "ofMain.h"
 
@@ -27,7 +28,7 @@ public:
   virtual float reproductivity() const = 0;
   virtual float mortality() const = 0;
   
-  void Draw() const;
+  void Draw();
   
   virtual void DrawInternal() const = 0;
   
@@ -40,6 +41,8 @@ public:
 public:
   bool player;
   std::list<GameObject *> neighbors;
+  std::set<GameObject *> connected;
+  float parity;
   float food;
   float mass;
   float size;
