@@ -69,7 +69,7 @@ void GameObject::Draw() {
   ofPopMatrix();
   if (player) {
     ofPushStyle();
-    ofSetColor(ofColor::black);
+    ofSetColor(ofColor::white);
     std::for_each(connected.begin(), connected.end(), [&] (GameObject *const neighbor) {
       ofLine(position, neighbor->position);
     });
@@ -96,18 +96,6 @@ void GameObject::Update(float dt) {
   position += velocity * dt;
   velocity += force / mass * dt;
   force = ofVec2f();
-  if (position.x < 0) {
-    position.x += ofGetWidth();
-  }
-  if (position.x >= ofGetWidth()) {
-    position.x -= ofGetWidth();
-  }
-  if (position.y < 0) {
-    position.y += ofGetHeight();
-  }
-  if (position.y >= ofGetHeight()) {
-    position.y -= ofGetHeight();
-  }
 }
 
 void GameObject::UpdateInternal(float dt) {
